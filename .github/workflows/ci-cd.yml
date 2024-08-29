@@ -1,0 +1,53 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./backend
+
+    - name: Run backend tests
+      run: npm test
+      working-directory: ./backend
+
+    - name: Build frontend
+      run: npm run build
+      working-directory: ./frontend
+
+    - name: Docker Compose Build
+      run: docker-compose build
+
+    - name: Docker Compose Push to Azure
+      run: |
+        echo ${{ secrets.AZURE_REGISTRY_USERNAME }} | docker login -u ${{ secrets.AZURE_REGISTRY_USERNAME }} --password-stdin ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+        docker-compose push
+
+    - name: Deploy to Azure
+      run: |
+        az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        az webapp config container set --name <app_name> --resource-group <resource_group> --docker-custom-image-name <docker_image_url>
