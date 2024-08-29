@@ -17,8 +17,13 @@ jobs:
         image: mongo:6
         ports:
           - 27017:27017
-
+        
     steps:
+    
+     - task: DownloadSecureFile@1
+      inputs:
+              secureFile: '.env'      
+      
     - name: Checkout code
       uses: actions/checkout@v2
 
@@ -49,5 +54,6 @@ jobs:
 
     - name: Deploy to Azure
       run: |
-        az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
         az webapp config container set --name <app_name> --resource-group <resource_group> --docker-custom-image-name <docker_image_url>
+
+        az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
